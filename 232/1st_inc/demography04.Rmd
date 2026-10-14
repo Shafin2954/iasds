@@ -1,0 +1,94 @@
+---
+title: "demography03"
+author: "Shafin Ahmed"
+date: "2026-08-25"
+output: html_document
+---
+
+```{r}
+age <- c(0, 5, 10, 15, 20, 25, 30, 35, 40, 45)
+n   <- c(5, 5, 5, 5, 5, 5, 5, 5, 5, NA)
+nMx <- c(0.0070, 0.0010, 0.0010, 0.0015, 0.0020,
+         0.0030, 0.0040, 0.0055, 0.0080, 0.0320)
+
+df <- data.frame(age, n, nMx)
+
+df$nqx <- 1 - exp(-df$n * df$nMx)
+last <- nrow(df)
+df$nqx[last] <- 1
+df$npx <- 1 - df$nqx
+
+l0 <- 100000
+df$lx <- l0 * cumprod(c(1, df$npx[-last]))
+df$ndx <- df$lx * df$nqx
+
+df$nLx <- df$n / 2 * (df$lx + c(df$lx[-1], NA))
+
+df$nLx[last] <- df$lx[last] / df$nMx[last]
+
+df$Tx <- rev(cumsum(rev(df$nLx)))
+df$ex <- df$Tx / df$lx
+df[,]
+
+mean(df$ex)
+
+plot(df$age, df$ex, type = "b")
+
+```
+```{r}
+age_group <- c("0-4","5-9","10-14","15-19","20-24","25-29","30-34","35-39","40-44","45-49","50-54","55-59","60-64","65-69","70-74","75-79","80+")
+male   <- c(196500,213400,218700,198500,168300,142800,128400,114700,98300,82600,67800,54300,42800,31200,21400,12700,8900)
+female <- c(188200,204800,209300,192400,178500,152400,138600,121200,102800,85400,70200,56800,44500,32800,23500,14800,12200)
+
+pop <- data.frame(age_group, male, female)
+
+
+barplot(-pop$male,
+        horiz     = TRUE,
+        col       = "#2563eb",
+        xlab      = "Population",
+        main      = "Pabna District, 2022",)
+
+# 2. Female bars, positive so they go to the right; overlay same panel
+barplot(pop$female,
+        horiz = TRUE,
+        col   = "#f472b6",
+        add   = TRUE)
+
+# 3. Draw a clean x axis with positive labels on both sides
+ticks <- seq(-220000, 220000, by = 50000)
+axis(1, at = ticks, labels = abs(ticks))
+
+# 4. Legen
+```
+```{r}
+barplot(-pop$male,
+        horiz     = TRUE,
+        names.arg = pop$age_group,
+        space     = 0,
+        col       = "#2563eb",
+        xlim      = c(-160000, 160000),
+        xlab      = "Population",
+        main      = "Pabna District, 2022",
+        las       = 1,
+        axes      = FALSE)
+
+# 2. Female bars, positive so they go to the right; overlay same panel
+barplot(pop$female,
+        horiz = TRUE,
+        space = 0,
+        col   = "#f472b6",
+        add   = TRUE,
+        axes  = FALSE)
+
+# 3. Draw a clean x axis with positive labels on both sides
+ticks <- seq(-150000, 150000, by = 50000)
+axis(1, at = ticks, labels = abs(ticks))
+
+# 4. Legend
+legend("topright",
+       legend = c("Male", "Female"),
+       fill   = c("#2563eb", "#f472b6"),
+       bty    = "n")
+```
+

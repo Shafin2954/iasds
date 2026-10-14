@@ -1,0 +1,33 @@
+```{r}
+type <- rep(c("A", "B", "C", "D", "E"), times=6)
+weight <- c(
+  3.2, 4.5, 5.1, 2.8, 6.3,
+  4.1, 3.7, 6.2, 3.6, 5.9,
+  3.8, 4.1, 4.9, 3.2, 6.1,
+  4.3, 3.9, 5.0, 2.9, 5.7,
+  5.1, 3.5, 5.3, 3.8, 6.5,
+  4.8, 4.0, 5.4, 3.7, 6.0)
+
+df <- data.frame(type, weight)
+```
+
+```{r}
+boxplot(weight ~ type, col=viridis::cividis(n=5))
+```
+
+# Diet effects: 
+```{r}
+mean <- tapply(weight, type, mean)
+effect <- mean - mean(weight)
+effect
+```
+
+# 
+```{r}
+model <- aov(weight ~ type, data=df)
+summary(model)
+```
+```{r}
+
+```
+

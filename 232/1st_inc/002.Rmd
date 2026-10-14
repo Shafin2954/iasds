@@ -1,0 +1,227 @@
+---
+title: "AST 232, Demography Practice"
+author: "Your Name, Roll xxxxxxxx, your.email@isrt.ac.bd"
+date: "`r format(Sys.Date())`"
+output:
+  html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 6, fig.height = 4, fig.align = "center")
+```
+
+# Question 1: Rangpur Division, 2022
+
+```{r q1-data}
+age_group <- c("0-4",  "5-9",  "10-14","15-19","20-24","25-29","30-34","35-39",
+               "40-44","45-49","50-54","55-59","60-64","65-69","70-74","75-79","80+")
+male   <- c(124500, 138200, 142300, 131400, 118200, 104500,  96300,  88700,
+             78400,  67100,  56800,  47200,  38500,  28700,  19600,  11400,   8200)
+female <- c(119800, 132400, 136700, 128900, 122600, 110800, 102400,  94200,
+             82500,  70200,  58900,  48400,  39200,  29800,  21200,  13500,  11800)
+
+pop <- data.frame(age_group, male, female)
+pop$total <- pop$male + pop$female
+```
+
+```{r q1-a}
+# 1(a) Sex composition: Sex Ratio and Masculinity Proportion
+sr <- sum(pop$male)/sum(pop$female) * 100
+sr
+```
+so, there are 98 males for each 100 females, a slight deficit.
+
+```{r q1-b}
+# 1(b) Dependency burden: Total, Child, and Old Age Dependency Ratios
+cdr <- sum(pop$total[1:3])/sum(pop$total[4:13]) * 100
+oadr <- sum(pop$total[14:17])/sum(pop$total[4:13]) * 100
+tdr <- cdr + oadr
+paste(cdr, oadr, tdr)
+```
+So, 47 people are dependent on each 100 working people. And the child dependency rate is much higher than the old age dependency ratio.
+
+```{r q1-c, fig.width=6, fig.height=4}
+# 1(c) Population pyramid and shape description
+barplot(-pop$male, horiz = TRUE, xlim = c(-160000, 160000), col = "steelblue", axes = FALSE)
+barplot(pop$female, horiz = TRUE, add = TRUE, col = "coral", axes = FALSE)
+ticks <- seq(-150000, 150000, by = 50000)
+axis(1, at = ticks, labels = abs(ticks))
+legend("topright",
+       legend = c("Male", "Female"),
+       fill   = c("steelblue", "coral"),
+       bty    = "n")
+```
+
+We can see a balanced pyramid shaped poplation composition.
+
+# Question 2: Cox's Bazar Refugee Camp, 2024
+
+```{r q2-data}
+age_group  <- c("15-19","20-24","25-29","30-34","35-39","40-44","45-49")
+births     <- c( 8640, 31450, 27300, 19820,  9460,  2170,   340)
+female_pop <- c(81200, 76800, 69400, 62500, 54200, 43900, 35600)
+L5x        <- c(98510, 98120, 97680, 97050, 96230, 94810, 92340)
+
+fert <- data.frame(age_group, births, female_pop, L5x)
+fert
+
+p  <- 0.487        # proportion of female births
+l0 <- 100000        # life-table radix
+```
+
+```{r q2-a}
+# 2(a) General Fertility Rate and comparison with the national GFR of 82
+gfr <- sum(fert$births) / sum(fert$female_pop) * 1000
+gfr
+```
+So, each 1000 females give birth to 234 children in their reproductive age. Comparing to 82 for the full country, we can say that the ferti;ity of the females of Rangpur is much higher than the females of the full country.
+```{r q2-b}
+# 2(b) Total Fertility Rate and interpretation
+fert$ASFR <- fert$births / fert$female_pop * 1000
+tfr<- 5 * sum(fert$ASFR) / 1000
+tfr
+```
+So, each females in Rangpur would give birth to 7 children if they lived the full extent of their reproductive age
+```{r q2-c}
+# 2(c) Gross Reproduction Rate and Net Reproduction Rate
+grr <- tfr * p
+grr
+
+l0 <- 100000                                # life table radix
+
+NRR <- sum(fert$ASFR * p * fert$L5x / l0) / 1000
+NRR
+```
+In GRR we assume that the woman lived her full life ovelooking their chance to live the full tie, but in NRR we tale the chance to live into account.
+
+# Question 3: India and Pakistan, 2023
+
+```{r q3-data}
+age_group    <- c("0-19","20-39","40-59","60-79","80+")
+ref_pop      <- c(12500, 19200, 29700, 21900, 2560)
+
+india_deaths <- c(  31,  145,   724, 1614,   814)
+india_pop    <- c(15402, 22640, 37573, 29011, 10725)
+
+pak_deaths   <- c(  42,  158, 1282, 1921, 1161)
+pak_pop      <- c(11745, 26972, 52975, 43028, 16783)
+
+mort <- data.frame(age_group, ref_pop,
+                   india_deaths, india_pop,
+                   pak_deaths, pak_pop)
+
+# Completeness fractions for India
+C_d <- 0.80    # death registration
+C_p <- 0.92    # census coverage
+```
+
+```{r q3-a}
+# 3(a) Compare crude mortality burden
+D <- sum(mort$india_deaths)        # 32,480 deaths in 2024
+P <- sum(mort$india_pop)    # 5,500,000 mid year population
+
+CDRind <- D / P * 1000
+CDRind
+
+D <- sum(mort$pak_deaths)        # 32,480 deaths in 2024
+P <- sum(mort$pak_pop)    # 5,500,000 mid year population
+
+CDRpak <- D / P * 1000
+CDRpak
+```
+So, the crude death rate of Pakistan is higher than India.
+
+```{r q3-b}
+# 3(b) Verify or refute the minister's claim (direct standardisation)
+mort$ASDRind <- mort$india_deaths / mort$india_pop * 1000
+
+expected <- mort$ASDRind * mort$ref_pop
+
+# Age standardised death rate (per 1000)
+ASRind <- sum(expected) / sum(mort$ref_pop)
+ASRind
+
+mort$ASDRpak <- mort$pak_deaths / mort$pak_pop * 1000
+
+expected <- mort$ASDRpak * mort$ref_pop
+
+# Age standardised death rate (per 1000)
+ASRpak <- sum(expected) / sum(mort$ref_pop)
+ASRpak
+
+```
+The ASR of the both countries are similar, but India has a slightly higher standardized death rate.
+
+```{r q3-c}
+# 3(c) Corrected Indian CDR and revised international comparison
+CDR_corrind <- CDRind * C_p / C_d
+CDR_corrind
+
+CDR_corrpak <- CDRpak
+CDRpak
+```
+The corrected CDR is still higher for Pakistan.
+
+# Question 4: Bangladesh Abridged Life Table, 2024
+
+```{r q4-data}
+age <- c(0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75)
+n   <- c(5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, NA)   # NA marks the open last interval
+nMx <- c(0.0060, 0.0008, 0.0008, 0.0012, 0.0018,
+         0.0025, 0.0035, 0.0050, 0.0075, 0.0110,
+         0.0160, 0.0230, 0.0330, 0.0480, 0.0700, 0.1300)
+
+lt <- data.frame(age, n, nMx)
+l0 <- 100000
+```
+
+```{r q4-a}
+# 4(a) Full abridged life table using the Fergany method, report e0
+build_life_table <- function(age, n, nMx, l0 = 100000) {
+
+  k <- length(nMx)
+
+  # Fergany method for nqx, then override the open last band
+  nqx <- 1 - exp(-n * nMx)
+  nqx[k] <- 1
+  npx <- 1 - nqx
+
+  # Survivors and deaths
+  lx  <- l0 * cumprod(c(1, npx[-k]))
+  ndx <- lx * nqx
+
+  # nLx, trapezoidal for closed and lx/nMx for the open band
+  nLx <- numeric(k)
+  for (i in 1:(k - 1)) {
+    nLx[i] <- (n[i] / 2) * (lx[i] + lx[i + 1])
+  }
+  nLx[k] <- lx[k] / nMx[k]
+
+  # Tx and ex
+  Tx <- rev(cumsum(rev(nLx)))
+  ex <- Tx / lx
+
+  data.frame(age, n, nMx, nqx, npx, lx, ndx, nLx, Tx, ex)
+}
+
+# Apply to Dhaka 2024
+bd_lt <- build_life_table(lt$age, lt$n, lt$nMx)
+bd_lt
+bd_lt$ex[1]
+```
+So, the life expectency at birth is 64 years approximately.
+
+```{r q4-b}
+# 4(b) Compare newborn girl and 25-year-old woman
+paste(bd_lt$ex[1], bd_lt$ex[6])
+```
+So, the expectency at birth was 64, and at 25 it is 42. As the female of 25 lived for 25 years already, then the expected total life span is 25 + 42 = 67 which is higher than the expectancy at birth. So the death rate eas actually higher at birth.
+```{r q4-c}
+# 4(c) Halve mortality in 0 to 4 band, rebuild and check if e0 target is met
+lt$nMx[1] <- .003
+lt$nMx
+bd_lt <- build_life_table(lt$age, lt$n, lt$nMx)
+
+bd_lt
+```

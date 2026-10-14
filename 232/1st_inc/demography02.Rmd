@@ -1,0 +1,235 @@
+---
+title: "Demography 02"
+author: "Shafin Ahmed"
+date: "2026-08-04"
+output: html_document
+---
+
+# Mortality rates
+
+The code to generate our dataset:
+```{r}
+# Mymensingh District, mid year 2024 (illustrative figures)
+age_group  <- c("0-14", "15-29", "30-44",
+                 "45-59", "60-74", "75+")
+
+deaths     <- c(560, 520, 1100, 2550, 9000, 18750)
+
+population <- c(1400000, 1300000, 1100000,
+                 850000,  600000,  250000)
+
+mort <- data.frame(age_group, deaths, population)
+
+# Completeness of registration (fractions)
+C_d <- 0.88      # deaths registration is 88% complete
+C_p <- 0.92      # census coverage is 92% complete
+
+# Inputs for the infant and child mortality measures (Slide 4)
+B            <- 125000   # total live births in 2024
+deaths_neo   <- 1875     # deaths aged 0 to 28 days
+deaths_inf   <- 3000     # deaths aged 0 to 12 months
+deaths_child <- 1568     # deaths aged 1 to 4 years
+P_1_4        <- 448000   # mid year population aged 1 to 4
+
+# Reference standard population (per 100,000), used in Slide 6
+std_pop <- c(28000, 25000, 20000, 15000, 8000, 4000)
+
+# Standard age specific death rates (per 1000), used in Slide 8
+M_std <- c(0.4, 0.5, 1.2, 3.5, 17.0, 80.0)
+M_std_crude <- 5.56   # crude rate in the standard population (per 1000)
+```
+
+# Crude Death Rate
+The Crude Death Rate is the simplest mortality measure: total deaths over total mid year population, expressed per 1,000 people.
+
+$$
+Crude\ Death\ Rate  =  \frac{Deaths}{Mid\ Year\ Population}  ×  1000
+$$
+where D is the number of deaths during the year and P is the mid year total population.
+
+Compute it in R:
+```{r}
+D <- sum(mort$deaths)        # 32,480 deaths in 2024
+P <- sum(mort$population)    # 5,500,000 mid year population
+
+CDR <- D / P * 1000
+CDR
+```
+
+So in Mymensingh about 5.91 people died in every 1,000 people in 2024.
+
+
+# Adjusting CDR for Completeness
+In many developing settings, the vital registration system misses some deaths and the census misses some people. When that happens, the raw CDR is biased. If we know the completeness of each, we can correct for it.
+
+$$
+CDR_{corrected}  =  \frac{(D ÷ C_d)}{(P ÷ C_p)}  ×  1000
+$$
+where Cd is the fraction of true deaths that are registered, and Cp is the fraction of the true population that is counted. Both fractions sit between 0 and 1.
+
+# Equivalent shortcut
+A little algebra gives a simpler form:
+
+$$
+CDR_{corrected}  =  CDR  ×  \frac{C_p}{C_d}
+$$
+Compute both in R
+```{r}
+CDR_corr1 <- (D / C_d) / (P / C_p) * 1000
+CDR_corr1
+#> [1] 6.18
+
+# The shortcut, scale the crude CDR
+CDR_corr2 <- CDR * C_p / C_d
+CDR_corr2
+```
+
+The raw CDR of 5.91 understates mortality because deaths are missed at a higher rate than the census misses people. Correcting raises the estimate to 6.18 per 1,000.
+
+# Neonatal Mortality Rate (NMR)
+Deaths during the first <mark>28 days</mark> of life per 1,000 live births.
+$$
+NMR  =  \frac{N}{B}  ×  1000
+$$
+where N is neonatal deaths (0 to 28 days) and B is total live births in the same year.
+```{r}
+NMR <- deaths_neo / B * 1000
+NMR
+```
+
+
+# Infant Mortality Rate (IMR)
+Deaths during the first year of life per 1,000 live births. Subsumes NMR.
+$$
+IMR  =  \frac{I}{B}  ×  1000
+$$
+where I is infant deaths (0 to 12 months).
+```{r}
+IMR <- deaths_inf / B * 1000
+IMR
+```
+
+# Child Mortality Rate (CMR)
+Deaths between exact ages 1 and 5 per 1,000 mid year population aged 1 to 4. Note that the denominator here is population, not live births, because by age 1 children are tracked through the census, not the birth register.
+$$
+CMR  =  \frac{C}{P_{1\ to\ 4}}  ×  1000
+$$
+where C is deaths aged 1 to 4 and P1 to 4 is the mid year population in that age range.
+
+```{r}
+CMR <- deaths_child / P_1_4 * 1000
+CMR
+```
+
+# Age Specific Death Rate
+ASDR breaks mortality down by age band. For each band, divide the deaths in the band by the mid year population in the band. The result is a vector of rates that describes the mortality profile of the population.
+$$
+ASDR_a  =  \frac{D_a}{P_a}  ×  1000
+$$
+Compute the full ASDR vector:
+```{r}
+mort$ASDR <- mort$deaths / mort$population * 1000
+mort[2:1, c("age_group", "ASDR")]
+```
+
+
+Plot the mortality curve
+```{r}
+plot(mort$ASDR, type = "o", pch = 19, col = "#dc2626",
+     xaxt = "n", xlab = "Age group", ylab = "ASDR (per 1000)",
+     main = "Mymensingh 2024, Age Specific Mortality")
+axis(1, at = 1:6, labels = mort$age_group)
+```
+# CDR is a weighted average of ASDRs
+The two summaries are tied together algebraically. The Crude Death Rate is the population weighted average of the age specific rates, where the weights are the share of the population in each age band.
+$$
+CDR  =  \sum ASDR_a \times \frac{P_a}{P}
+$$
+# Verify the identity
+```{r}
+weights <- mort$population / sum(mort$population)
+sum(mort$ASDR * weights)
+```
+
+# Direct Standardisation
+Two populations with similar CDRs can have very different true mortality. The trick is to apply each population's age specific rates to one shared standard age structure, so age differences drop out of the comparison.
+$$
+Age\ standardised\ rate  =  \sum \frac{ASDR_a  ×  P_{std,a}}{Σ P_{std,a}}
+$$
+The numerator is the deaths we would expect in the standard population if it had Mymensingh's mortality. Divide by the standard's total size and you get a comparable rate.
+
+Compute it in R:
+```{r}
+# Expected deaths per standard person in each band
+expected <- mort$ASDR * std_pop
+
+# Age standardised death rate (per 1000)
+ASR <- sum(expected) / sum(std_pop)
+ASR
+```
+
+Why this rescues the comparison
+Suppose Bogura District has a CDR very close to Mymensingh's, but a younger age structure. Applying the same standard to both populations strips out the age effect and shows which one really has higher mortality at every age.
+
+# For Bogura
+
+```{r}
+age_group  <- c("0-14","15-29","30-44","45-59","60-74","75+")
+deaths     <- c(630, 700, 1190, 3150, 7000, 8400)
+population <- c(1050000, 1000000, 700000, 525000, 280000, 70000)
+bogura <- data.frame(age_group, deaths, population)
+
+bogura$ASDR <- bogura$deaths / bogura$population * 1000
+
+# Expected deaths per standard person in each band
+expected <- bogura$ASDR * std_pop
+
+# Age standardised death rate (per 1000)
+ASR <- sum(expected) / sum(std_pop)
+ASR
+
+weights <- bogura$population / sum(bogura$population)
+sum(bogura$ASDR * weights)
+
+```
+So, even though the CDR is similar, the ASR is higher in bogura where we overlook the age effect for dying. So, th ehealth system in Bogura is worse than Maymensingh.
+
+
+# The Standardised Mortality Ratio (SMR)
+First compute the deaths we would expect in the study population if it had the standard's age specific mortality. Then divide observed deaths by expected.
+$$
+Expected\ deaths  =  \sum (M_{std,a}  ×  P_{obs,a}) ÷ 1000
+\\
+SMR  =  \frac{D_{observed}}{expected\ deaths}
+$$
+SMR is a unitless ratio. SMR = 1 means the study matches the standard, SMR > 1 means heavier mortality than the standard, SMR < 1 means lighter.
+
+# From SMR to an indirectly standardised rate
+Multiplying SMR by the standard's crude rate gives a rate on the same per 1,000 scale as a CDR.
+
+$$
+Indirectly\ standardised\ rate  =  SMR  ×  M_{std,crude}
+$$
+Compute it in R
+```{r}
+# Total observed deaths in Mymensingh
+D_obs <- sum(bogura$deaths)         # 32,480
+
+# Expected deaths if Mymensingh had the standard's ASDRs
+expected <- sum(M_std * bogura$population) / 1000
+expected
+#> [1] 35705
+
+# Standardised Mortality Ratio
+SMR <- D_obs / expected
+SMR
+```
+
+# Indirectly standardised death rate (per 1000)
+
+```{r}
+IDR <- SMR * M_std_crude
+IDR
+```
+
+

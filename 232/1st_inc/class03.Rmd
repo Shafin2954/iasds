@@ -1,0 +1,120 @@
+---
+title: "Fertilty Measures"
+author: "Shafin Ahmed"
+date: "2026-08-10"
+output: html_document
+---
+
+## Sample Dataframe
+
+The following code creates a dataframe to test our measures:
+
+```{r}
+# Khulna District, mid year 2024 (illustrative figures)
+age_group  <- c("15-19", "20-24", "25-29", "30-34",
+                 "35-39", "40-44", "45-49")
+
+births     <- c(8000, 15000, 11000, 7000,
+                 2200, 600,   100)
+
+female_pop <- c(110000, 105000, 100000, 95000,
+                 85000,  75000,  65000)
+
+L5x        <- c(494000, 491000, 488000, 484500,
+                 480000, 474000, 466000)  # from a life table, radix 100,000
+
+fert <- data.frame(age_group, births, female_pop, L5x)
+
+# Two more constants we will use later
+total_pop <- 2400000     # Khulna mid year total population
+p_female  <- 0.487        # proportion of births that are girls (Bangladesh average)
+```
+
+## Crude Birth Rate
+
+The formula for Crude Birth Rate is:
+
+$$
+CBR = \frac{Total Births}{Total population} \times 1000
+$$
+
+To find this for our sample data:
+```{r}
+births = sum(fert$births)
+cbr = births / total_pop * 1000
+round(cbr, 2)
+```
+Here we can understand that per 1000 people 18 children were born in Khulna in 2024.
+
+## Monthly Birth Rate
+
+```{r}
+# Khulna, March 2024: 31 days, 3,720 live births recorded
+B_month <- 3720
+P_month <- 2400000
+d       <- 31
+
+MBR <- (365 / d) * B_month / P_month * 1000
+round(MBR, 2)
+```
+Here we can understand that per 1000 people 18 children were born in Khulna in March 2024.
+
+# General Fertility Rate
+```{r}
+Pf_15_49 <- sum(fert$female_pop)   # 635,000 women aged 15 to 49
+GFR <- births / Pf_15_49 * 1000
+round(GFR, 2)
+```
+Which means 1000 women gave births to 69.13 children in 2024 in Khulna.
+
+## A rule of thumb
+
+It is approximately true that: 
+$$
+GFR = 4 \times CBR
+$$
+
+# Age Specific Fertility Rate
+```{r}
+fert$ASFR <- round(fert$births / fert$female_pop * 1000, 2)
+fert[, c("age_group", "ASFR")]
+```
+We can see the graph:
+
+```{r, echo=FALSE}
+plot(fert$ASFR, type = "o", pch = 19, col = "#AA2222",
+     xaxt = "n", xlab = "Age group", ylab = "ASFR (per 1000 women)",
+     main = "Khulna 2024, Age Specific Fertility")
+axis(1, at = 1:7, labels = fert$age_group)
+```
+
+# Total Fertility Rate
+
+```{r}
+n <- 5                                  # age band width
+TFR <- n * sum(fert$ASFR) / 1000
+round(TFR, 3)
+```
+It means a woman in khulna will have 2 children on an average if they lived their full reproductive age.
+
+# Gross Reproduction Rate
+The formula is given by:
+$$
+GRR = TFR \times proportion\ of\ births\ that\ are\ girls
+$$
+
+```{r}
+GRR <- TFR * p_female
+round(GRR, 3)
+```
+This means each women will give birth to 1.06 daughters if they live upto their full reproductive live
+
+# Net Reproduction Rate
+
+```{r}
+l0 <- 100000                                # life table radix
+
+NRR <- sum(fert$ASFR * p_female * fert$L5x / l0) / 1000
+round(NRR, 3)
+```
+

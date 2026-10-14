@@ -1,0 +1,77 @@
+---
+title: "demography03"
+author: "Shafin Ahmed"
+date: "2026-08-25"
+output: html_document
+---
+
+# Life table
+
+```{r}
+# Dhaka District 2024, abridged age specific death rates (per person year)
+age      <- c(0, 5, 10, 15, 20, 25, 30, 35, 40, 45)
+n        <- c(5, 5, 5, 5, 5, 5, 5, 5, 5, NA)   # last band is open
+nMx      <- c(0.0060, 0.0008, 0.0008,
+            0.0012, 0.0018, 0.0025,
+            0.0035, 0.0050, 0.0075,
+            0.0300)
+
+lt <- data.frame(age, n, nMx)
+l0 <- 100000      # standard radix
+```
+
+```{r}
+# Fergany method for the closed bands
+lt$nqx <- 1 - exp(-lt$n * lt$nMx)
+
+# Override the open last band
+last <- nrow(lt)
+lt$nqx[last] <- 1
+
+# Survival probability is just the complement
+lt$npx <- 1 - lt$nqx
+
+lt[, c("age", "nMx", "nqx", "npx")]
+```
+```{r}
+lt$lx <- l0 * cumprod(c(1, lt$npx[-last]))
+
+# Deaths in each interval
+lt$ndx <- lt$lx * lt$nqx
+
+lt[, c("age", "lx", "ndx")]
+```
+```{r}
+lt$nLx <- NA_real_
+
+# Closed bands: trapezoidal average
+for (i in 1:(last - 1)) {
+  lt$nLx[i] <- (lt$n[i] / 2) * (lt$lx[i] + lt$lx[i + 1])
+}
+
+# Open last band
+lt$nLx[last] <- lt$lx[last] / lt$nMx[last]
+
+lt[, c("age", "lx", "nLx")]
+```
+# for a new dataset
+
+```{r}
+age <- c(0, 5, 10, 15, 20, 25, 30, 35, 40, 45)
+n   <- c(5, 5, 5, 5, 5, 5, 5, 5, 5, NA)
+nMx <- c(0.0070, 0.0010, 0.0010, 0.0015, 0.0020,
+         0.0030, 0.0040, 0.0055, 0.0080, 0.0320)
+
+df <- data.frame(age, n, nMx)
+df$nqx <- 1 - exp(-df$n * df$nMx)
+last <- nrow(df)
+df$nqx[last] <- 1
+df$npx <- 1 - df$nqx
+
+l0 <- 100000
+df$lx <- l0 * cumprod(c(1, df$npx[-last]))
+df$ndx <- df$lx * df$nqx
+
+df[,]
+```
+

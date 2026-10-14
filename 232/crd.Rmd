@@ -1,0 +1,79 @@
+---
+
+---
+
+```{r}
+# Four fertilizer treatments, five replicates each
+treat <- rep(c("Urea", "NPK", "Compost", "Mixed"), each = 5)
+```
+
+
+```{r}
+yield <- c(4.2, 4.8, 4.0, 4.5, 4.4,    # Urea
+            5.3, 4.7, 5.1, 5.5, 4.9,    # NPK
+            4.1, 3.8, 4.3, 3.9, 4.2,    # Compost
+            5.4, 5.9, 5.3, 5.7, 5.6)    # Mixed
+
+rice <- data.frame(treat = factor(treat), yield)
+
+tapply(rice$yield, rice$treat, mean)
+#> Compost   Mixed     NPK    Urea 
+#>    4.06    5.58    5.10    4.38
+```
+
+```{r}
+boxplot(yield ~ treat, data = rice,
+        col = "#dbeafe", border = "#2563eb",
+        xlab = "Fertilizer", ylab = "Rice yield (Mg/ha)",
+        main = "BARI Rice Trial 2024")
+```
+
+```{r}
+a <- 4;  n <- 5;  N <- a * n
+
+sum_y = sum(rice$yield)
+sum_y2 = sum(rice$yield^2)
+treat = tapply(rice$yield, rice$treat, sum)
+sum_treat = sum(treat)
+sum_treat2 = sum(treat^2)
+
+cf = sum_y^2 / N
+sst = sum_y2 - cf
+ss_treat = sum_treat2 / n - cf
+sse = sst - ss_treat
+
+ms_treat = ss_treat / (a - 1)
+mse = sse / (N - a)
+f_calc   <- ms_treat/mse
+f_calc
+```
+
+
+
+```{r}
+a <- 4;  n <- 5;  N <- a * n
+
+CF <- sum(rice$yield)^2 / N
+SST <- sum(rice$yield^2) - CF
+
+treat_sum <- tapply(rice$yield, rice$treat, sum)
+SS_treat <- sum(treat_sum^2) / n - CF
+SSE <- SST - SS_treat
+
+df_treat <- a - 1          # 3
+df_error <- N - a          # 16
+
+MS_treat <- SS_treat / df_treat
+MSE      <- SSE      / df_error
+F_calc   <- MS_treat / MSE
+F_tab    <- qf(0.95, df_treat, df_error)
+
+c(SS_treat = SS_treat, SSE = SSE,
+        MS_treat = MS_treat, MSE = MSE,
+        F_calc = F_calc, F_tab = F_tab)
+```
+```{r}
+model <- aov(yield ~ treat, data = rice)
+summary(model)
+```
+

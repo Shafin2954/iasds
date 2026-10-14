@@ -1,0 +1,106 @@
+---
+title: "demogra"
+author: "Shafin Ahmed"
+date: "2026-08-04"
+output: html_document
+---
+
+```{r}
+# Four fertilizer treatments, five replicates each
+treat <- rep(c("Urea", "NPK", "Compost", "Mixed"), each = 5)
+```
+
+
+```{r}
+yield <- c(4.2, 4.8, 4.0, 4.5, 4.4,    # Urea
+            5.3, 4.7, 5.1, 5.5, 4.9,    # NPK
+            4.1, 3.8, 4.3, 3.9, 4.2,    # Compost
+            5.4, 5.9, 5.3, 5.7, 5.6)    # Mixed
+
+rice <- data.frame(treat = factor(treat), yield)
+
+y_bar <- tapply(rice$yield, rice$treat, mean)
+#> Compost   Mixed     NPK    Urea 
+#>    4.06    5.58    5.10    4.38
+```
+
+```{r}
+boxplot(yield ~ treat, data = rice,
+        col = "#dbeafe", border = "#2563eb",
+        xlab = "Fertilizer", ylab = "Rice yield (Mg/ha)",
+        main = "BARI Rice Trial 2024")
+```
+
+```{r}
+a <- 4;  n <- 5;  N <- a * n
+
+sum_y = sum(rice$yield)
+sum_y2 = sum(rice$yield^2)
+treat = tapply(rice$yield, rice$treat, sum)
+sum_treat = sum(treat)
+sum_treat2 = sum(treat^2)
+
+cf = sum_y^2 / N
+sst = sum_y2 - cf
+ss_treat = sum_treat2 / n - cf
+sse = sst - ss_treat
+
+ms_treat = ss_treat / (a - 1)
+mse = sse / (N - a)
+f_calc   <- ms_treat/mse
+f_calc
+```
+
+```{r}
+se <-  sqrt(mse/n)
+tcrit <- qt(1-.05/2/4, N-a)
+
+ci_table <- data.frame(
+  Lower = y_bar - tcrit * se,
+  Upper = y_bar + tcrit * se
+)
+
+ci_table
+
+```
+```{r}
+tcrit <- qt(1-.05/2, N-a)
+ci_table <- data.frame(
+  Lower = y_bar - tcrit * se,
+  Upper = y_bar + tcrit * se
+)
+
+ci_table
+```
+```{r}
+treatment_names <- rownames(ci_table)
+pairs <- combn(treatment_names, 2)
+
+# ৩. লুপ চালিয়ে ওভারল্যাপ পরীক্ষা করা
+overlap_results <- data.frame(
+  Treatment_1 = pairs[1, ],
+  Treatment_2 = pairs[2, ],
+  Overlap = NA
+)
+
+for(i in 1:nrow(overlap_results)) {
+  t1 <- overlap_results$Treatment_1[i]
+  t2 <- overlap_results$Treatment_2[i]
+  
+  # ওভারল্যাপের শর্ত পরীক্ষা
+  is_overlapping <- ci_table[t1, "Lower"] <= ci_table[t2, "Upper"] && 
+                     ci_table[t1, "Upper"] <= ci_table[t2, "Lower"]
+  
+  overlap_results$Overlap[i] <- is_overlapping
+}
+
+# ফলাফল প্রদর্শন
+print(overlap_results)
+```
+```{r}
+model <-  aov(yield ~ treat, data = rice)
+TukeyHSD(model, conf.level = 0.95)
+
+qq()
+```
+

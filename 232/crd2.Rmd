@@ -1,0 +1,88 @@
+```{r}
+treat <- rep(c("F1","F2","F3","F4"), each = 4)
+
+# treat <- rep(1:4, each=4)
+gain  <- c(18.4, 19.2, 17.8, 18.6,
+           22.3, 21.5, 22.8, 22.0,
+           16.5, 17.2, 16.8, 17.5,
+           24.1, 23.5, 24.6, 23.8)
+
+df <- data.frame(treat, gain)
+```
+
+
+
+---
+
+
+```{r}
+boxplot(gain ~ treat, data = df,
+        col = "#dbeafe", border = "#2563eb",
+        xlab = "Factors", ylab = "Gain",
+        main = "Gain vs Factors")
+```
+
+
+
+```{r}
+a <- 4;  n <- 4;  N <- a * n
+
+CF <- sum(gain)^2 / N
+SST <- sum(gain^2) - CF
+
+treat_sum <- tapply(gain, df$treat, sum)
+SS_treat <- sum(treat_sum^2) / n - CF
+SSE <- SST - SS_treat
+
+df_treat <- a - 1          # 3
+df_error <- N - a          # 16
+
+MS_treat <- SS_treat / df_treat
+MSE      <- SSE      / df_error
+F_calc   <- MS_treat / MSE
+F_tab    <- qf(0.95, df_treat, df_error)
+
+c(SS_treat = SS_treat, SSE = SSE,
+        MS_treat = MS_treat, MSE = MSE,
+        F_calc = F_calc, F_tab = F_tab)
+```
+
+```{r}
+model <- aov(gain ~ treat, data = df)
+summary(model)
+```
+
+```{r}
+treat1 <- rep(c("F1","F2","F3","F4"), each = 4)
+
+treat2 <- rep(1:4, each=4)
+gain  <- c(18.4, 19.2, 17.8, 18.6,
+           22.3, 21.5, 22.8, 22.0,
+           16.5, 17.2, 16.8, 17.5,
+           24.1, 23.5, 24.6, 23.8)
+
+df1 <- data.frame(treat1, gain)
+df2 <- data.frame(treat2, gain)
+
+model1 <- aov(gain ~ treat1, data = df1)
+model2 <- aov(gain ~ treat2, data = df2)
+
+summary(model1)
+summary(model2)
+
+
+plot(model1)
+```
+```{r}
+res <- residuals(model)
+fit <- fitted(model)
+fit
+res
+
+qqnorm(res, pch=20)
+plot(fit, res)
+
+# should know sequence of treatments
+plot(seq_along(res), res)
+```
+

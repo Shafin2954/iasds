@@ -1,0 +1,41 @@
+---
+title: "AST 232 Final Exam Solutions"
+author: "Your Name, Roll 12345"
+date: "2026-08-10"
+output:
+  pdf_document:
+    toc: true
+    number_sections: true
+---
+\newpage
+# Introduction
+
+Prose goes here. Write in **bold** and *italic* just like in normal Markdown.
+
+## Question 1
+
+The next block is an R code chunk. Everything between the triple backticks runs when we knit.
+
+
+
+```{r q1-anova}
+data(iris)
+model <- aov(Sepal.Length ~ Species, data = iris)
+summary(model)
+```
+
+
+
+Interpretation of the ANOVA goes here, again in prose. \  
+```{r yield-boxplot, fig.width=6, fig.height=4, fig.cap="Yield by fertilizer"}
+boxplot(count ~ spray, data = InsectSprays,
+        col = "#dbeafe", border = "#2563eb",
+        xlab = "Fertilizer", ylab = "Yield (Mg/ha)")
+```  
+
+
+The value of 1234 * 5678 is `r  1234 * 5678`  \
+
+
+
+My name is $Shafin Ahmed$
