@@ -1,3 +1,26 @@
+---
+title: "CRD Assignment"
+author: "Md Shafin Ahmed Soron"
+date: "2026-10-25" 
+output:
+  html_document: default
+  pdf_document:
+    highlight: tango
+header-includes:
+  - \usepackage{tcolorbox}
+  - \usepackage{etoolbox}
+  - \tcbuselibrary{breakable}
+  - \renewenvironment{Shaded}{\begin{tcolorbox}[breakable, colback=gray!12, colframe=gray!50, boxrule=0.4pt, arc=2pt]}{\end{tcolorbox}}
+  - \BeforeBeginEnvironment{verbatim}{\begin{tcolorbox}[breakable, colback=white, colframe=gray!50, boxrule=0.4pt, arc=2pt]}
+  - \AfterEndEnvironment{verbatim}{\end{tcolorbox}}
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 6, fig.height = 5,
+                      out.width = "75%", fig.align = "center")
+```
+\pagebreak
+
+We initialize the data frame with the given data:
 ```{r}
 type <- rep(c("A", "B", "C", "D", "E"), times=6)
 weight <- c(
@@ -6,28 +29,164 @@ weight <- c(
   3.8, 4.1, 4.9, 3.2, 6.1,
   4.3, 3.9, 5.0, 2.9, 5.7,
   5.1, 3.5, 5.3, 3.8, 6.5,
-  4.8, 4.0, 5.4, 3.7, 6.0)
+  4.8, 4.0, 5.4, 3.7, 6.0
+)
 
 df <- data.frame(type, weight)
 ```
 
+## 1(a): Boxplot
+
 ```{r}
-boxplot(weight ~ type, col=viridis::cividis(n=5))
+boxplot(weight ~ type, 
+        col  = "steelblue", 
+        main = "Boxplot of Weight by Type", 
+        xlab = "Type", 
+        ylab = "Weight")
 ```
 
-# Diet effects: 
+\pagebreak
+
+If we rearrange the boxplots with the sequence D, B, A, C, E, the pattern becomes more visible:
+
+```{r}
+boxplot(weight ~ factor(type, levels=c("D", "B", "A", "C", "E")), 
+        col  = "steelblue", 
+        main = "Boxplot of Weight by Type", 
+        xlab = "Type", 
+        ylab = "Weight")
+```
+
+So the distributions appear to differ across diets: E and C have the highest weight gains, D the lowest, while A and B are in between and overlap. The spreads look roughly similar, though A is somewhat wider and C has one outlier (6.2). We need a formal test to tell whether these differences are significant.
+
+## 1(b): Diet effects
+
+The treatment effects are estimated by the difference between each group mean and the overall mean, $\hat\tau_i = \bar y_{i.} - \bar y_{..}$:
 ```{r}
 mean <- tapply(weight, type, mean)
 effect <- mean - mean(weight)
 effect
 ```
 
-# 
+## 1(c): Test at $\alpha = 1\%$
+
+$H_0: \tau_A = \tau_B = \tau_C = \tau_D = \tau_E = 0$ vs. $H_1:$ at least one $\tau_i \neq 0$
+
 ```{r}
-model <- aov(weight ~ type, data=df)
+a <- 5;  n <- 6;  N <- a * n
+
+sum_y      <- sum(weight)
+sum_y2     <- sum(weight^2)
+treat      <- tapply(weight, type, sum)
+sum_treat  <- sum(treat)
+sum_treat2 <- sum(treat^2)
+
+cf       <- sum_y^2 / N
+sst      <- sum_y2 - cf
+ss_treat <- sum_treat2 / n - cf
+sse      <- sst - ss_treat
+
+ms_treat <- ss_treat / (a - 1)
+mse      <- sse / (N - a)
+f_calc   <- ms_treat / mse
+
+f_tab <- qf(0.99, df1 = a - 1, df2 = N - a)
+
+c(SS_treat = ss_treat, 
+  SSE      = sse,
+  MS_treat = ms_treat, 
+  MSE      = mse,
+  F_calc   = f_calc, 
+  F_tab    = f_tab)
+```
+
+Since $F_{calc} = 34.10 > F_{tab} = 4.18$, we reject the null hypothesis at the 1% level and conclude that at least one diet has a different effect on weight gain.
+
+## 1(d): using aov()
+
+```{r}
+model <- aov(weight ~ type)
 summary(model)
 ```
-```{r}
 
+The sums of squares, mean squares and F value match our manual calculation. The p-value ($8.69 \times 10^{-10}$) is far below 0.01, so the conclusion is consistent: we reject $H_0$.
+
+## 1(e): 95% CI for treatment effect of Diet C
+
+For the treatment effect, 
+$$\hat\tau_C = \bar y_{C.} - \bar y_{..}$$
+with 
+$$Var(\hat\tau_C) = \frac{a-1}{a}\cdot\frac{\sigma^2}{n}$$
+the interval will be:
+
+```{r}
+alpha <- 0.05
+tcrit <- qt(1 - alpha/2, N - a)
+y_c <- mean(weight[type == "C"])
+tau_c   <- y_c - mean(weight)
+se_tau   <- sqrt((a - 1) / a * mse / n)
+
+c(lower = tau_c - tcrit * se_tau,
+  upper = tau_c + tcrit * se_tau)
 ```
+
+The interval (0.39, 1.09) does not contain 0, so Diet C gives significantly more weight gain than the overall average.
+
+\pagebreak
+
+## 1(f): Bonferroni pairwise comparisons
+
+Number of comparisons: $r = \binom{5}{2} = 10$
+
+The Bonferroni multiplier is: $t_{\alpha/(2r),\,N-a}$
+
+Two means differ significantly if 
+$$|\bar y_i - \bar y_j| > t_{\alpha/(2r),\,N-a}\sqrt{2\,MSE/n}$$
+
+```{r}
+r          <- choose(a, 2)
+tcrit_bonf <- qt(1 - alpha / (2 * r), N - a)
+b          <- tcrit_bonf * sqrt(2 * mse / n)
+
+pairs <- combn(names(mean), 2)
+diff  <- mean[pairs[1, ]] - mean[pairs[2, ]]
+
+data.frame(pair  = paste(pairs[1, ],"-" ,pairs[2, ]),
+           diff  = diff,
+           lower = diff - b,
+           upper = diff + b,
+           sig   = ifelse(abs(diff) > b, "*", ""))
+```
+
+At family-wise $\alpha=0.05$, the significant pairs are:
+
+- A - C
+- A - D
+- A - E
+- B - C
+- B - E
+- C - D
+- D - E
+
+The remaining pairs (A - B, B - D, and C - E) are not significant.
+
+\pagebreak
+
+## 1(g): Tukey's Honestly Significant Difference test
+
+```{r}
+TukeyHSD(model, "type", conf.level = 0.95)
+```
+
+At the 5% family-wise level, Tukey's test finds these significantly different:
+
+- A - C
+- A - D
+- A - E
+- B - C
+- B - E
+- C - D
+- D - E 
+
+A - B, B - D, and C - E are not significant. The conclusion agrees with the Bonferroni comparisons.
 
