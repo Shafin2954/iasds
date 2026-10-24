@@ -3,8 +3,7 @@ title: "CRD Assignment"
 author: "Md Shafin Ahmed Soron"
 date: "2026-10-25" 
 output:
-  html_document: default
-  pdf_document:
+  html_document:
     highlight: tango
 header-includes:
   - \usepackage{tcolorbox}
@@ -19,6 +18,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width = 6, fig.height = 5,
                       out.width = "75%", fig.align = "center")
 ```
 \pagebreak
+## Setting up the Data
 
 We initialize the data frame with the given data:
 ```{r}
@@ -39,7 +39,7 @@ df <- data.frame(type, weight)
 
 ```{r}
 boxplot(weight ~ type, 
-        col  = "steelblue", 
+        col  = "lightblue", 
         main = "Boxplot of Weight by Type", 
         xlab = "Type", 
         ylab = "Weight")
@@ -51,7 +51,7 @@ If we rearrange the boxplots with the sequence D, B, A, C, E, the pattern become
 
 ```{r}
 boxplot(weight ~ factor(type, levels=c("D", "B", "A", "C", "E")), 
-        col  = "steelblue", 
+        col  = "lightblue", 
         main = "Boxplot of Weight by Type", 
         xlab = "Type", 
         ylab = "Weight")
@@ -70,8 +70,13 @@ effect
 
 ## 1(c): Test at $\alpha = 1\%$
 
-$H_0: \tau_A = \tau_B = \tau_C = \tau_D = \tau_E = 0$ vs. $H_1:$ at least one $\tau_i \neq 0$
-
+We have: 
+$$
+\begin{aligned}
+H_0 &: \tau_A = \tau_B = \tau_C = \tau_D = \tau_E = 0 \\
+H_1 &: \text{at least one } \tau_i \neq 0
+\end{aligned}
+$$
 ```{r}
 a <- 5;  n <- 6;  N <- a * n
 
@@ -118,6 +123,9 @@ $$\hat\tau_C = \bar y_{C.} - \bar y_{..}$$
 with 
 $$Var(\hat\tau_C) = \frac{a-1}{a}\cdot\frac{\sigma^2}{n}$$
 the interval will be:
+$$
+[\hat\tau_C - t_{\alpha/2,\,N-a}\sqrt{Var(\hat\tau_C)}, \hat\tau_C + t_{\alpha/2,\,N-a}\sqrt{Var(\hat\tau_C)}]
+$$
 
 ```{r}
 alpha <- 0.05
@@ -130,7 +138,7 @@ c(lower = tau_c - tcrit * se_tau,
   upper = tau_c + tcrit * se_tau)
 ```
 
-The interval (0.39, 1.09) does not contain 0, so Diet C gives significantly more weight gain than the overall average.
+The interval [0.39, 1.09] does not contain 0, so Diet C gives significantly more weight gain than the overall average.
 
 \pagebreak
 
@@ -172,7 +180,7 @@ The remaining pairs (A - B, B - D, and C - E) are not significant.
 
 \pagebreak
 
-## 1(g): Tukey's Honestly Significant Difference test
+## 1(g): Tukey's HSD test
 
 ```{r}
 TukeyHSD(model, "type", conf.level = 0.95)
